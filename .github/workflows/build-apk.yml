@@ -41,18 +41,29 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      - name: Setup Keystore and Secrets
+      - name: Setup Keystores and Secrets
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           GEMINI_API_KEY_SECRET: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # Inject Gemini API Key into environment files
+          # 1. Inject Gemini API Key into environment files
           echo "GEMINI_API_KEY=${GEMINI_API_KEY_SECRET}" > .env
           echo "GEMINI_API_KEY=${GEMINI_API_KEY_SECRET}" > .env.example
           
-          # Decode Release Keystore if provided in GitHub Secrets
+          # 2. Setup debug.keystore required by debugConfig
+          if [ -f "debug.keystore.base64" ]; then
+            echo "Decoding debug.keystore from repository..."
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
+          
+          if [ ! -f "debug.keystore" ]; then
+            echo "Generating fallback debug.keystore with keytool..."
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+          # 3. Decode Release Keystore if provided in GitHub Secrets
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Decoding Keystore from GitHub Secrets..."
+            echo "Decoding Release Keystore from GitHub Secrets..."
             echo "$KEYSTORE_BASE64" | base64 --decode > my-upload-key.jks
           fi
 
@@ -73,7 +84,7 @@ jobs:
             echo "Building Signed Release APK..."
             ./gradlew assembleRelease --stacktrace || echo "Release build failed, will still publish Debug APK."
           else
-            echo "Keystore not found, skipping signed release build."
+            echo "Release keystore not found, skipping signed release build."
           fi
 
       - name: Upload Debug APK Artifact
