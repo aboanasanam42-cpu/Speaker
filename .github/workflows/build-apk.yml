@@ -50,14 +50,17 @@ jobs:
           echo "GEMINI_API_KEY=${GEMINI_API_KEY_SECRET}" > .env
           echo "GEMINI_API_KEY=${GEMINI_API_KEY_SECRET}" > .env.example
           
-          # 2. Setup debug.keystore required by debugConfig
+          # 2. Setup debug.keystore required by debugConfig at root
           if [ -f "debug.keystore.base64" ]; then
-            echo "Decoding debug.keystore from repository..."
+            echo "Decoding debug.keystore from debug.keystore.base64 in repo..."
             base64 -d debug.keystore.base64 > debug.keystore
+          elif [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Decoding debug.keystore from secrets.KEYSTORE_BASE64..."
+            echo "$KEYSTORE_BASE64" | base64 --decode > debug.keystore
           fi
           
           if [ ! -f "debug.keystore" ]; then
-            echo "Generating fallback debug.keystore with keytool..."
+            echo "Generating fallback debug.keystore via keytool..."
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
@@ -70,15 +73,24 @@ jobs:
       - name: Build Debug APK
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          KEYSTORE_PASSWORD: ${{ secrets.CI_KEYSTORE_PASSWORD || secrets.CM_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.CI_KEY_ALIAS || secrets.CM_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.CI_KEY_PASSWORD || secrets.CM_KEY_PASSWORD }}
+          CI_KEYSTORE_PASSWORD: ${{ secrets.CI_KEYSTORE_PASSWORD || secrets.CM_KEYSTORE_PASSWORD }}
+          CI_KEY_ALIAS: ${{ secrets.CI_KEY_ALIAS || secrets.CM_KEY_ALIAS }}
+          CI_KEY_PASSWORD: ${{ secrets.CI_KEY_PASSWORD || secrets.CM_KEY_PASSWORD }}
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Build Release APK (if Keystore is provided)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           KEYSTORE_PATH: my-upload-key.jks
-          CM_KEYSTORE_PASSWORD: ${{ secrets.CM_KEYSTORE_PASSWORD }}
-          CM_KEY_ALIAS: ${{ secrets.CM_KEY_ALIAS }}
-          CM_KEY_PASSWORD: ${{ secrets.CM_KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.CI_KEYSTORE_PASSWORD || secrets.CM_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.CI_KEY_ALIAS || secrets.CM_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.CI_KEY_PASSWORD || secrets.CM_KEY_PASSWORD }}
+          CI_KEYSTORE_PASSWORD: ${{ secrets.CI_KEYSTORE_PASSWORD || secrets.CM_KEYSTORE_PASSWORD }}
+          CI_KEY_ALIAS: ${{ secrets.CI_KEY_ALIAS || secrets.CM_KEY_ALIAS }}
+          CI_KEY_PASSWORD: ${{ secrets.CI_KEY_PASSWORD || secrets.CM_KEY_PASSWORD }}
         run: |
           if [ -f "my-upload-key.jks" ]; then
             echo "Building Signed Release APK..."
