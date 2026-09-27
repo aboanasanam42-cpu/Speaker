@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">AI Phone Call</string>
+    <string name="title_personas">AI Voice Call</string>
+    <string name="tab_all">All</string>
+    <string name="tab_arabic">العربية (5)</string>
+    <string name="tab_english">English (5)</string>
+    <string name="call_status_connecting">Connecting…</string>
+    <string name="call_status_listening">Listening to you…</string>
+    <string name="call_status_thinking">Thinking…</string>
+    <string name="call_status_speaking">Speaking…</string>
+    <string name="call_status_muted">Microphone Muted</string>
+    <string name="call_status_ended">Call Ended</string>
+    <string name="action_end_call">End Call</string>
+    <string name="action_call">Call</string>
+    <string name="action_mute">Mute</string>
+    <string name="action_unmute">Unmute</string>
+    <string name="action_speaker">Speaker</string>
+    <string name="api_key_settings">Gemini API Key</string>
+    <string name="api_key_hint">Enter your Gemini API key</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+</resources>

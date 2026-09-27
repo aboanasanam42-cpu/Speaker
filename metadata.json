@@ -1,0 +1,6 @@
+{
+  "name": "AI Phone Call",
+  "description": "Interactive AI Phone Call simulator with 10 female personas in Arabic and English, real-time speech recognition, Gemini Flash, and text-to-speech.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
