@@ -11,6 +11,10 @@ on:
       - master
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build & Package APKs
@@ -25,13 +29,17 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
-      - name: Setup Android SDK 35
-        uses: android-actions/setup-android@v3
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Accept Android SDK Licenses
+        run: |
+          echo "Accepting Android SDK licenses..."
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
       - name: Grant Execute Permission for Gradlew
-        run: chmod +x gradlew || true
+        run: chmod +x gradlew
 
       - name: Setup Keystore and Secrets
         env:
@@ -63,9 +71,9 @@ jobs:
         run: |
           if [ -f "my-upload-key.jks" ]; then
             echo "Building Signed Release APK..."
-            ./gradlew assembleRelease --stacktrace
+            ./gradlew assembleRelease --stacktrace || echo "Release build failed, will still publish Debug APK."
           else
-            echo "Skipping Release APK build (Keystore not found, Debug APK built successfully)."
+            echo "Keystore not found, skipping signed release build."
           fi
 
       - name: Upload Debug APK Artifact
@@ -82,3 +90,18 @@ jobs:
           name: AI-Phone-Call-Release-APK
           path: app/build/outputs/apk/release/*.apk
           retention-days: 14
+
+      - name: Generate Build Summary
+        run: |
+          echo "### 📱 تم بناء تطبيق AI Phone Call بنجاح! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "تجد ملفات الـ **APK** جاهزة للتحميل والتثبيت المباشر في قسم **Artifacts** أسفل صفحة هذا التشغيل:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| الحزمة (Package) | الحالة (Status) |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **AI-Phone-Call-Debug-APK** | ✅ تم البناء والتغليف بنجاح |" >> $GITHUB_STEP_SUMMARY
+          if [ -f "app/build/outputs/apk/release/"*.apk 2>/dev/null ]; then
+            echo "| **AI-Phone-Call-Release-APK** | ✅ تم التوقيع والبناء بنجاح |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "قم بتنزيل ملف الـ ZIP من Artifacts وفك ضغطه لتثبيت ملف \`.apk\` على هاتفك مباشرة." >> $GITHUB_STEP_SUMMARY

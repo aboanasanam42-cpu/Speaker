@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -113,7 +114,7 @@ fun ActiveCallScreen(
                             .testTag("speaker_toggle_header")
                     ) {
                         Icon(
-                            imageVector = if (uiState.isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.Hearing,
+                            imageVector = if (uiState.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.Default.Hearing,
                             contentDescription = "Speaker Toggle",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
