@@ -41,7 +41,7 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      - name: Setup Keystores and Secrets
+      - name: Setup Environment and Keystores
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           GEMINI_API_KEY_SECRET: ${{ secrets.GEMINI_API_KEY }}
@@ -50,18 +50,19 @@ jobs:
           echo "GEMINI_API_KEY=${GEMINI_API_KEY_SECRET}" > .env
           echo "GEMINI_API_KEY=${GEMINI_API_KEY_SECRET}" > .env.example
           
-          # 2. Setup debug.keystore required by debugConfig at root
-          if [ -f "debug.keystore.base64" ]; then
-            echo "Decoding debug.keystore from debug.keystore.base64 in repo..."
-            base64 -d debug.keystore.base64 > debug.keystore
-          elif [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Decoding debug.keystore from secrets.KEYSTORE_BASE64..."
-            echo "$KEYSTORE_BASE64" | base64 --decode > debug.keystore
+          # 2. Setup debug.keystore for debugConfig (must have password 'android' and alias 'androiddebugkey')
+          if [ -f "debug.keystore.base64" ] && [ -s "debug.keystore.base64" ]; then
+            echo "Attempting to decode debug.keystore from repository..."
+            base64 -d debug.keystore.base64 > debug.keystore || true
           fi
-          
-          if [ ! -f "debug.keystore" ]; then
-            echo "Generating fallback debug.keystore via keytool..."
+
+          # Verify if debug.keystore is valid with password 'android', otherwise generate a fresh one
+          if ! keytool -list -keystore debug.keystore -storepass android > /dev/null 2>&1; then
+            echo "Generating fresh valid debug.keystore via keytool..."
+            rm -f debug.keystore
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          else
+            echo "debug.keystore is valid."
           fi
 
           # 3. Decode Release Keystore if provided in GitHub Secrets
@@ -73,12 +74,6 @@ jobs:
       - name: Build Debug APK
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          KEYSTORE_PASSWORD: ${{ secrets.CI_KEYSTORE_PASSWORD || secrets.CM_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.CI_KEY_ALIAS || secrets.CM_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.CI_KEY_PASSWORD || secrets.CM_KEY_PASSWORD }}
-          CI_KEYSTORE_PASSWORD: ${{ secrets.CI_KEYSTORE_PASSWORD || secrets.CM_KEYSTORE_PASSWORD }}
-          CI_KEY_ALIAS: ${{ secrets.CI_KEY_ALIAS || secrets.CM_KEY_ALIAS }}
-          CI_KEY_PASSWORD: ${{ secrets.CI_KEY_PASSWORD || secrets.CM_KEY_PASSWORD }}
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Build Release APK (if Keystore is provided)
